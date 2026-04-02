@@ -2,8 +2,8 @@ import express from "express";
 import { createClient } from "@supabase/supabase-js";
 import bcrypt from "bcryptjs";
 import dotenv from "dotenv";
-import { genToken, emailAlreadyUsed, verifyGoogleToken, findUser, siretAlreadyUsedWithAnotherEmail } from "../helpers/authHelpers.js";
-
+import { genToken, emailAlreadyUsed, verifyGoogleToken, findUser, siretAlreadyUsedWithAnotherEmail, findUserById } from "../helpers/authHelpers.js";
+import authMiddleware from "../middleware/authMiddleware.js";
 
 dotenv.config();
 
@@ -17,15 +17,22 @@ const supabase = createClient(
 router.post("/connexion-client", async (req, res) => {
     try {
         const { email, mdp } = req.body;
-
+        
         const user = await findUser({ email, type: "client" });
-
+       
         if (!user || !bcrypt.compareSync(mdp, user.mdp_h))
             return res.status(401).json({ error: "Email ou mot de passe incorrect" });
-
+       
+        const token = genToken(user.user_id, "client");
+        res.cookie('token', token, {
+            httpOnly: true,
+            secure: false,   
+            sameSite: 'Strict',
+            maxAge: 24 * 60 * 60 * 1000,
+        });
+       
         res.json({
-            token: genToken(user.user_id, "client"),
-            user: { user_id: user.user_id, email }
+            user: { user_id: user.user_id, email, type: "client"}
         });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -43,9 +50,17 @@ router.post("/connexion-entreprise", async (req, res) => {
         if (!user || !bcrypt.compareSync(mdp, user.mdp_h))
             return res.status(401).json({ error: "Email ou mot de passe incorrect" });
 
+        const token = genToken(user.user_id, "entreprise");
+        
+        res.cookie('token', token, {
+            httpOnly: true,
+            secure: false,   
+            sameSite: 'Strict',
+            maxAge: 24 * 60 * 60 * 1000,
+        });
+
         res.json({
-            token: genToken(user.user_id, "entreprise"),
-            user: { user_id: user.user_id, email }
+            user: { user_id: user.user_id, email, type: "entreprise"}
         });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -85,9 +100,17 @@ router.post("/inscription-client", async (req, res) => {
        
         if (profilError) return res.status(500).json({ error: profilError.message });
        
+        const token = genToken(newUser.user_id, "client");
+        
+        res.cookie('token', token, {
+            httpOnly: true,
+            secure: false,   
+            sameSite: 'Strict',
+            maxAge: 24 * 60 * 60 * 1000,
+        });
+
         res.json({
-            token: genToken(newUser.user_id, "client"),
-            user: { user_id: newUser.user_id, email },
+            user: { user_id: newUser.user_id, email, type: "client" },
         });
        
     } catch (err) {
@@ -129,9 +152,17 @@ router.post("/inscription-entreprise", async (req, res) => {
 
         if (profilError) return res.status(500).json({ error: profilError.message });
 
+        const token = genToken(newUser.user_id, "entreprise");
+        
+        res.cookie('token', token, {
+            httpOnly: true,
+            secure: false,   
+            sameSite: 'Strict',
+            maxAge: 24 * 60 * 60 * 1000,
+        });
+
         res.json({
-            token: genToken(newUser.user_id, "entreprise"),
-            user: { user_id: newUser.user_id, email },
+            user: { user_id: newUser.user_id, email , type: "entreprise"},
         });
 
     } catch (err) {
@@ -186,9 +217,17 @@ router.post("/connexion-client/google", async (req, res) => {
             profilData: { prenom: "" },
         });
 
+        const jwtToken =  genToken(user.user_id, "client");
+        
+        res.cookie('token', jwtToken, {
+            httpOnly: true,
+            secure: false,   
+            sameSite: 'Strict',
+            maxAge: 24 * 60 * 60 * 1000,
+        });
+
         res.json({
-            token: genToken(user.user_id, "client"),
-            user: { user_id: user.user_id, email: payload.email },
+            user: { user_id: user.user_id, email: payload.email, type: "client" },
         });
     } catch (err) {
         res.status(401).json({ error: "Échec de la connexion avec Google" });
@@ -215,13 +254,37 @@ router.post("/connexion-entreprise/google", async (req, res) => {
             siret,
         });
 
+        const jwtToken =  genToken(user.user_id, "entreprise");
+        
+        res.cookie('token', jwtToken, {
+            httpOnly: true,
+            secure: false,   
+            sameSite: 'Strict',
+            maxAge: 24 * 60 * 60 * 1000,
+        });
+
         res.json({
-            token: genToken(user.user_id, "entreprise"),
-            user: { user_id: user.user_id, email: payload.email },
+            user: { user_id: user.user_id, email: payload.email, type:"entreprise" },
         });
     } catch (err) {
         res.status(401).json({ error: "Échec de la connexion avec Google" });
     }
+});
+
+// verification token
+router.get('/verify', authMiddleware, async(req, res) => {
+    res.set('Cache-Control', 'no-store');
+    const user = await findUserById(req.user.user_id);
+    res.json({ user });
+    });
+
+    router.post('/logout', (req, res) => {
+    res.clearCookie('token', {
+        httpOnly: true,
+        secure: false,  
+        sameSite: 'Strict',
+    });
+    res.json({ success: true });
 });
 
 

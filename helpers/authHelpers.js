@@ -59,3 +59,15 @@ export const findUser = async ({email, type, siret=null}) => {
         return data?.[0] || null;
 };
 
+export const findUserById = async (user_id) => {
+    const query = supabase
+        .from("Utilisateurs")
+        .select("user_id, email, type")
+        .eq("user_id", user_id)
+        .limit(1);
+
+    const { data, error } = await query;
+    if (error) throw new Error(error.message);
+        return data?.[0] || null;
+};
+
