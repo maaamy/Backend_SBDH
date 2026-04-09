@@ -45,9 +45,13 @@ export const verifyGoogleToken = async (token) => {
 };
 
 export const findUser = async ({email, type, siret=null}) => {
+    const selectQuery = type === "client" 
+        ? "user_id, mdp_h, type, Client(nom)"
+        : "user_id, mdp_h, type, Entreprise(nom)";
+
     const query = supabase
         .from("Utilisateurs")
-        .select("user_id, mdp_h, type")
+        .select(selectQuery)
         .eq("email", email)
         .eq("type", type)
         [siret === null ? "is" : "eq"]("siret", siret)
@@ -57,5 +61,25 @@ export const findUser = async ({email, type, siret=null}) => {
     const { data, error } = await query;
     if (error) throw new Error(error.message);
         return data?.[0] || null;
+};
+
+export const findUserById = async (user_id) => {
+    const { data, error } = await supabase
+        .from("Utilisateurs")
+        .select("user_id, email, type, Client(nom), Entreprise(nom)")
+        .eq("user_id", user_id)
+        .limit(1);
+
+    if (error) throw new Error(error.message);
+    
+    const user = data?.[0] || null;
+    if (!user) return null;
+
+    return {
+        user_id: user.user_id,
+        email: user.email,
+        type: user.type,
+        nom: user.Client?.[0]?.nom || user.Entreprise?.[0]?.nom || null
+    };
 };
 
