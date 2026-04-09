@@ -30,9 +30,8 @@ router.post("/connexion-client", async (req, res) => {
             sameSite: 'Strict',
             maxAge: 24 * 60 * 60 * 1000,
         });
-       
         res.json({
-            user: { user_id: user.user_id, email, type: "client"}
+            user: { user_id: user.user_id, email, type: "client", nom: user.Client[0].nom }
         });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -60,7 +59,7 @@ router.post("/connexion-entreprise", async (req, res) => {
         });
 
         res.json({
-            user: { user_id: user.user_id, email, type: "entreprise"}
+            user: { user_id: user.user_id, email, type: "entreprise", nom: user.Entreprise[0].nom}
         });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -110,7 +109,7 @@ router.post("/inscription-client", async (req, res) => {
         });
 
         res.json({
-            user: { user_id: newUser.user_id, email, type: "client" },
+            user: { user_id: newUser.user_id, email, type: "client", nom: nom },
         });
        
     } catch (err) {
@@ -162,7 +161,7 @@ router.post("/inscription-entreprise", async (req, res) => {
         });
 
         res.json({
-            user: { user_id: newUser.user_id, email , type: "entreprise"},
+            user: { user_id: newUser.user_id, email , type: "entreprise", nom: nomEntreprise},
         });
 
     } catch (err) {
@@ -227,7 +226,7 @@ router.post("/connexion-client/google", async (req, res) => {
         });
 
         res.json({
-            user: { user_id: user.user_id, email: payload.email, type: "client" },
+            user: { user_id: user.user_id, email: payload.email, type: "client", nom: payload.name },
         });
     } catch (err) {
         res.status(401).json({ error: "Échec de la connexion avec Google" });
@@ -264,7 +263,7 @@ router.post("/connexion-entreprise/google", async (req, res) => {
         });
 
         res.json({
-            user: { user_id: user.user_id, email: payload.email, type:"entreprise" },
+            user: { user_id: user.user_id, email: payload.email, type:"entreprise", nom: payload.name },
         });
     } catch (err) {
         res.status(401).json({ error: "Échec de la connexion avec Google" });
