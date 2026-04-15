@@ -26,14 +26,14 @@ export const emailAlreadyUsed = async (email) => {
 };
 
 export const siretAlreadyUsedWithAnotherEmail = async (siret, email) => {
-    const user = await supabase
+    const { data, error } = await supabase
         .from("Utilisateurs")
-        .select("*")
-        .eq("siret", siret)
-    if( user ){
-        return user.email !== email;
-    }
-    return false;
+        .select("email")
+        .eq("siret", siret);
+
+    if (error || !data || data.length === 0) return false;
+
+    return data.some(user => user.email !== email);
 };
 
 export const verifyGoogleToken = async (token) => {
